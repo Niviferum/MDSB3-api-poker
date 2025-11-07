@@ -6,6 +6,11 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "db:migrate": "dotenv -e .env -- npx prisma migrate dev",
+    "db:generate": "dotenv -e .env -- npx prisma generate",
+    "db:studio": "dotenv -e .env -- npx prisma studio",
+    "db:push": "dotenv -e .env -- npx prisma db push",
+    "db:reset": "dotenv -e .env -- npx prisma migrate reset",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -21,10 +26,14 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/typeorm": "^11.0.0",
+    "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.27"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -35,7 +44,9 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
+    "@types/pg": "^8.15.6",
     "@types/supertest": "^6.0.2",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

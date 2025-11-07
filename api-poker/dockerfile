@@ -1,0 +1,20 @@
+# Utiliser Node 20 comme base
+FROM node:20
+
+# Créer le répertoire de travail
+WORKDIR /app
+
+# Copier package.json et package-lock.json
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm install
+
+# Copier tout le projet
+COPY . .
+
+# Exposer le port de l'application
+EXPOSE 3000
+
+# Commande pour démarrer l'application en dev
+CMD ["npm", "run", "start:dev"]
