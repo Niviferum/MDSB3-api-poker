@@ -7,7 +7,7 @@ https://www.docker.com/products/docker-desktop
 Git
 
 ### 1. Cloner le projet
-``git clone https://github.com/<username>/api-poker.git
+``git clone https://github.com/Niviferum/api-poker.git
 cd api-poker`` 
 
 ### 2. Créer le fichier d’environnement
