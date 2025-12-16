@@ -1,20 +1,28 @@
-# Utiliser Node 20 comme base
-FROM node:20
+FROM node:20-alpine
 
-# Créer le répertoire de travail
+# Crée le répertoire de travail
 WORKDIR /app
 
-# Copier package.json et package-lock.json
+# Copie les fichiers de dépendances
 COPY package*.json ./
 
-# Installer les dépendances
-RUN npm install
+# Installe les dépendances
+RUN npm ci
 
-# Copier tout le projet
+# Copie le reste du code
 COPY . .
 
-# Exposer le port de l'application
+# IMPORTANT : Change le propriétaire de tout le workspace
+RUN chown -R node:node /app
+
+# Bascule sur l'utilisateur non-privilégié
+USER nodecat /proc/self/status | grep NoNewPrivs
+
+# Build l'application (sera fait en tant que 'node', pas 'root')
+RUN npm run build
+
+# Expose le port
 EXPOSE 3000
 
-# Commande pour démarrer l'application en dev
+# Lance l'application
 CMD ["npm", "run", "start:dev"]
