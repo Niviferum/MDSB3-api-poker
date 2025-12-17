@@ -6,8 +6,11 @@ export class PlayersService {
   constructor(private databaseService: DatabaseService) {}
 
   async getAllPlayers() {
-    return this.databaseService.getUsers().map(({ password, ...user }) => user);
-  }
+  return this.databaseService.getUsers().map((user) => {
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  });
+}
 
   async getPlayerById(id: string) {
     const user = this.databaseService.findUserById(id);

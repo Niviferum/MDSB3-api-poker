@@ -9,6 +9,7 @@ import { User } from './users/entities/user.entity';
 import { Table } from './tables/entities/table.entity';
 import { PlayerInGame } from './tables/entities/player-in-game.entity';
 import { GameStats } from './tables/entities/game-stats.entity';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -16,8 +17,8 @@ import { GameStats } from './tables/entities/game-stats.entity';
     
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'postgres',
-      port: parseInt(process.env.DB_PORT) || 5432,
+      host: 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'poker_db',
@@ -26,6 +27,7 @@ import { GameStats } from './tables/entities/game-stats.entity';
       logging: true,
     }),
     
+    SharedModule,
     AuthModule,
     UsersModule,
     PlayersModule,
