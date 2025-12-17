@@ -5,10 +5,10 @@ import { TablesModule } from './tables/tables.module';
 import { DatabaseService } from './shared/database.service';
 import { CatsController } from './cats/cats.controller';
 import { CatsService } from './cats/cats.service';
-import { UsersModule } from './users/users.module';
+// import { UsersModule } from './users/users.module';
 
 @Module({
-  imports: [AuthModule, UsersModuleAuthModule, PlayersModule, TablesModule, CatsController],
+  imports: [AuthModule, PlayersModule, TablesModule, CatsController],
   providers: [DatabaseService, CatsService],
 })
 export class AppModule {}
