@@ -6,6 +6,9 @@ import { AuthService } from './auth.service';
 import { jwtConstants } from './constants';
 import { AuthGuard } from './auth.guard';
 import { UsersModule } from '../users/users.module'; // ← Importer le module
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
+import { DatabaseService } from '../shared/database.service';
 
 @Module({
   imports: [
@@ -26,4 +29,6 @@ import { UsersModule } from '../users/users.module'; // ← Importer le module
   controllers: [AuthController],
   exports: [AuthService],
 })
+
+
 export class AuthModule {}
