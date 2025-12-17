@@ -1,5 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Exclude } from 'class-transformer';
+import { PlayerInGame } from '../../tables/entities/player-in-game.entity';
 
+/**
+ * Entite User - Represente un compte joueur
+ * Chaque utilisateur recoit une cave de depart de 1000 euros
+ */
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -8,11 +21,24 @@ export class User {
   @Column({ unique: true })
   username: string;
 
+  @Column({ unique: true })
+  email: string;
+
+  /**
+   * Mot de passe hashe avec bcrypt
+   * Le decorateur @Exclude empeche son exposition dans les reponses API
+   */
   @Column()
+  @Exclude()
   password: string;
 
+  /**
+   * Cave du joueur en euros
+   * Type decimal pour precision exacte (pas de float!)
+   * Stocke en string pour eviter les erreurs d'arrondi JavaScript
+   */
   @Column('decimal', { precision: 10, scale: 2, default: 1000 })
-  bankroll: number;
+  bankroll: string;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -20,6 +46,10 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany('PlayerInGame', 'user') // ← String literal au lieu d'import
-  playersInGame: any[]; // ← Type any temporairement
+  /**
+   * Relation One-to-Many vers PlayerInGame
+   * Un user peut participer a plusieurs parties
+   */
+  @OneToMany(() => PlayerInGame, (player) => player.user)
+  playersInGame: PlayerInGame[];
 }
