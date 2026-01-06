@@ -75,7 +75,7 @@ export class AuthService {
     };
   }
 
-  async getUserById(userId: string) {
+  async getUserById(userId: string): Promise<any> {
     const user = this.databaseService.findUserById(userId);
     if (!user) return null;
 

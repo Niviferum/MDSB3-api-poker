@@ -1,15 +1,15 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { PlayersService } from './players.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+
 
 @ApiTags('Players')
 @Controller('players')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class PlayersController {
   constructor(private playersService: PlayersService) {}
-
+  
   @Get()
   @ApiOperation({ summary: 'Récupérer la liste de tous les joueurs' })
   @ApiResponse({ status: 200, description: 'Liste des joueurs' })

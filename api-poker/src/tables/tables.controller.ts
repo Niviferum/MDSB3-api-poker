@@ -1,14 +1,14 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { TablesService } from './tables.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+
 import { CreateTableDto } from './dto/dto';
 import type { IJWTRequest } from 'src/auth/auth.interface';
 
 @ApiTags('Tables')
 @Controller('tables')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+
+// @ApiBearerAuth()
 export class TablesController {
   constructor(private tablesService: TablesService) {}
 

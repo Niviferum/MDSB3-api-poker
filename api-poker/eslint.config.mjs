@@ -31,6 +31,7 @@ export default tseslint.config(
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_'
     }],
+    '@typescript-eslint/no-unsafe-argument': 'off',
   },
 }
 );

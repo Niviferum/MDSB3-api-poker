@@ -6,11 +6,6 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "db:migrate": "dotenv -e .env -- npx prisma migrate dev",
-    "db:generate": "dotenv -e .env -- npx prisma generate",
-    "db:studio": "dotenv -e .env -- npx prisma studio",
-    "db:push": "dotenv -e .env -- npx prisma db push",
-    "db:reset": "dotenv -e .env -- npx prisma migrate reset",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

@@ -4,11 +4,13 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import type {IJWTRequest} from "./auth.interface"
+import { Public } from './public.decorator';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Créer un compte joueur avec 1000€ de cave' })
   @ApiResponse({ status: 201, description: 'Compte créé avec succès' })
@@ -17,6 +19,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post('login')
   @ApiOperation({ summary: 'Se connecter et obtenir un token JWT' })
   @ApiResponse({ status: 200, description: 'Connexion réussie' })
@@ -26,12 +29,12 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Récupérer les informations du joueur connecté' })
   @ApiResponse({ status: 200, description: 'Informations récupérées' })
   @ApiResponse({ status: 401, description: 'Non authentifié' })
-  async getProfile(@Request() req : IJWTRequest) {
+  async getProfile(@Request() req: IJWTRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return this.authService.getUserById(req.user.userId);
   }
 }
