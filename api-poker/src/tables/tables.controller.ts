@@ -6,8 +6,8 @@ import { CreateTableDto } from './dto/dto';
 import type { IJWTRequest } from 'src/auth/auth.interface';
 
 @ApiTags('Tables')
+@ApiBearerAuth()
 @Controller('tables')
-
 // @ApiBearerAuth()
 export class TablesController {
   constructor(private tablesService: TablesService) {}

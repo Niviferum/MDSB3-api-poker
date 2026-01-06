@@ -28,11 +28,10 @@ export class AuthGuard implements CanActivate {
     if (isPublic) {
       return true;
     }
-
     // Sinon, vérifier le JWT
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
-
+    console.log("Found token", token)
     if (!token) {
       throw new UnauthorizedException();
     }
