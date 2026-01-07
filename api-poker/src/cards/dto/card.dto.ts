@@ -1,4 +1,4 @@
-import { IsEnum, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import { IsEnum, IsArray, ValidateNested, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { CardSuit, CardRank } from '../entities/card.entity';
@@ -30,5 +30,8 @@ export class DrawCardsDto {
     minimum: 1,
     maximum: 52
   })
+  @IsInt()
+  @Min(1)
+  @Max(52)
   count: number;
 }

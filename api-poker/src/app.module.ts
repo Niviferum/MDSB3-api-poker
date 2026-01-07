@@ -10,7 +10,9 @@ import { Table } from './tables/entities/table.entity';
 import { PlayerInGame } from './tables/entities/player-in-game.entity';
 import { GameStats } from './tables/entities/game-stats.entity';
 import { SharedModule } from './shared/shared.module';
-
+import { CardsModule } from './cards/cards.module';
+import { GameService } from './game/game.service';
+import { GameModule } from './game/game.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -32,6 +34,9 @@ import { SharedModule } from './shared/shared.module';
     UsersModule,
     PlayersModule,
     TablesModule,
+    CardsModule,
+    GameModule,
   ],
+  providers: [GameService],
 })
 export class AppModule {}
