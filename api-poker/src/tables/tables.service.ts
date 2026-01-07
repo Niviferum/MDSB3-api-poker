@@ -23,7 +23,8 @@ export class TablesService {
       communityCards: [],
       currentPlayerIndex: 0,
       status: 'waiting',
-      createdAt: new Date()
+      createdAt: new Date(),
+      currentBet: 0
     };
 
     this.databaseService.addTable(newTable);
