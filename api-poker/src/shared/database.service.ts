@@ -30,6 +30,7 @@ export interface Table {
   pot: number;
   communityCards: string[];
   currentPlayerIndex: number;
+  currentBet: number;
   status: string;
   createdAt: Date;
 }
