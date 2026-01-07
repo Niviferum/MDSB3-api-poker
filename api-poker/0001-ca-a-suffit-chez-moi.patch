@@ -1,0 +1,44 @@
+From c6fd8b1c248e89d417aa126879b35093ebe225c1 Mon Sep 17 00:00:00 2001
+From: docusland <erwann.duclos@gmail.com>
+Date: Tue, 6 Jan 2026 16:47:50 +0100
+Subject: [PATCH] ca a suffit chez moi
+
+---
+ api-poker/src/auth/auth.guard.ts          | 3 +--
+ api-poker/src/tables/tables.controller.ts | 2 +-
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/api-poker/src/auth/auth.guard.ts b/api-poker/src/auth/auth.guard.ts
+index df66967..39fc5ec 100644
+--- a/api-poker/src/auth/auth.guard.ts
++++ b/api-poker/src/auth/auth.guard.ts
+@@ -28,11 +28,10 @@ export class AuthGuard implements CanActivate {
+     if (isPublic) {
+       return true;
+     }
+-
+     // Sinon, vérifier le JWT
+     const request = context.switchToHttp().getRequest();
+     const token = this.extractTokenFromHeader(request);
+-
++    console.log("Found token", token)
+     if (!token) {
+       throw new UnauthorizedException();
+     }
+diff --git a/api-poker/src/tables/tables.controller.ts b/api-poker/src/tables/tables.controller.ts
+index a8e3562..bd917f4 100644
+--- a/api-poker/src/tables/tables.controller.ts
++++ b/api-poker/src/tables/tables.controller.ts
+@@ -6,8 +6,8 @@ import { CreateTableDto } from './dto/dto';
+ import type { IJWTRequest } from 'src/auth/auth.interface';
+ 
+ @ApiTags('Tables')
++@ApiBearerAuth()
+ @Controller('tables')
+-
+ // @ApiBearerAuth()
+ export class TablesController {
+   constructor(private tablesService: TablesService) {}
+-- 
+2.47.3
+
