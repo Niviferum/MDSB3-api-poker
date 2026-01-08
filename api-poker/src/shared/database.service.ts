@@ -7,6 +7,8 @@ export interface User {
   password: string;
   chips: number;
   createdAt: Date;
+  gamesPlayed: number;
+  gamesWon: number;
 }
 
 export interface Player {

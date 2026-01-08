@@ -318,6 +318,11 @@
         <div class="user-info">
           <div>👤 <span id="userUsername">Player</span></div>
           <div>💰 <span id="userBankroll">1000</span>€</div>
+          <div class="stat-card">
+            <p>Parties jouées : <span id="statGames">0</span></p>
+            <p>Victoires : <span id="statWon">0</span></p>
+            <p>Taux de victoire : <span id="statWinRate">0%</span></p>
+          </div>
         </div>
         <div>
           <button onclick="showCreateTableForm()">+ Créer une table</button>
@@ -409,17 +414,83 @@
 
   <script>
     const API_URL = 'http://localhost:3030';
-    let token = localStorage.getItem('token') || null;
-    let currentUser = null;
+    let token = localStorage.getItem('poker_token');
+    let currentUserId = localStorage.getItem('userId');
     let currentTableId = null;
-    let currentGameState = null;
+  let currentGameState = null;
+    const GAMBLER_NAMES = [
+  "Tsunade (La Légendaire Perdante)",
+  "Kaiji Itō",
+  "Yumeko Jabami",
+  "Lando Calrissian",
+  "Joey Wheeler",
+  "Double-Face",
+  "James Bond",
+  "Jabba le Hutt",
+  "Homer Simpson",
+  "Bender"
+];
 
-    // Initialize
-    if (token) {
-      loadUserProfile();
-    }
+
+  if (token && currentUserId) {
+      refreshDashboardStats();
+  }
+  let BOT_NAME = "En attente..."; // Variable globale
+      if (token) {
+        // loadUserProfile();
+      }
 
     // ===== AUTH FUNCTIONS =====
+    async function refreshDashboardStats() {
+    const idToUse = currentUserId || localStorage.getItem('userId');
+    const tokenToUse = token || localStorage.getItem('poker_token');
+
+    if (!idToUse || !tokenToUse) return;
+
+    try {
+        const response = await fetch(`${API_URL}/players/${idToUse}/stats`, { // URL corrigée : /id/stats
+            headers: { 'Authorization': `Bearer ${tokenToUse}` }
+        });
+
+        if (response.ok) {
+            // L'ERREUR ÉTAIT ICI : il faut bien attendre la réponse avant de l'utiliser
+            const stats = await response.json(); 
+            
+            console.log("Stats reçues :", stats);
+
+            // Maintenant on peut utiliser 'stats'
+            document.getElementById('userUsername').textContent = stats.username;
+            document.getElementById('userBankroll').textContent = stats.totalChips;
+            document.getElementById('statGames').textContent = stats.gamesPlayed;
+            document.getElementById('statWon').textContent = stats.gamesWon;
+            document.getElementById('statWinRate').textContent = stats.winRate;
+        } else {
+            console.error("Erreur API :", response.status);
+        }
+    } catch (error) {
+        // C'est ici que ton erreur s'affichait
+        console.error("Erreur refresh stats:", error);
+    }
+}
+
+    window.onload = async () => {
+    const storedToken = localStorage.getItem('poker_token');
+    const storedId = localStorage.getItem('userId');
+
+    if (storedToken && storedId) {
+        token = storedToken;
+        currentUserId = storedId;
+        
+        showScreen('lobbyScreen'); // On montre le dashboard
+        await refreshDashboardStats();
+        refreshTables();
+    } else {
+
+        logout();
+        showScreen('loginScreen');
+    }
+};
+
     async function register() {
       const username = document.getElementById('loginUsername').value;
       const email = document.getElementById('loginEmail').value;
@@ -455,70 +526,82 @@
     }
 
     async function login() {
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
+  const username = document.getElementById('loginUsername').value;
+  const password = document.getElementById('loginPassword').value;
 
-      if (!username || !password) {
-        showError('Username et password obligatoires');
-        return;
-      }
+  if (!username || !password) {
+    showError('Username et password obligatoires');
+    return;
+  }
 
-      try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (response.ok) {
-          token = data.token;
-          localStorage.setItem('token', token);
-          currentUser = data.user;
-          showScreen('lobbyScreen');
-          updateUserInfo();
-          refreshTables();
-        } else {
-          showError(data.message || 'Erreur lors de la connexion');
-        }
-      } catch (error) {
-        showError('Erreur de connexion au serveur');
-      }
+    if (response.ok) {
+      // 1. On met à jour les variables globales AVANT d'appeler les stats
+      token = data.token; 
+      currentUserId = data.userId;
+
+      // 2. Stockage
+      localStorage.setItem('poker_token', token);
+      localStorage.setItem('userId', currentUserId);
+
+      // 3. Interface
+      showScreen('lobbyScreen');
+      
+      // 4. On lance les refreshs
+      await refreshDashboardStats(); 
+      refreshTables();
+    } else {
+      showError(data.message || 'Identifiants invalides');
     }
+  } catch (error) {
+    showError('Erreur de connexion au serveur');
+  }
+}
 
-    async function loadUserProfile() {
-      try {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+    // async function loadUserProfile() {
+    //   try {
+    //     const response = await fetch(`${API_URL}/auth/me`, {
+    //       headers: { 'Authorization': `Bearer ${token}` }
+    //     });
 
-        if (response.ok) {
-          currentUser = await response.json();
-          showScreen('lobbyScreen');
-          updateUserInfo();
-          refreshTables();
-        } else {
-          logout();
-        }
-      } catch (error) {
-        logout();
-      }
-    }
+    //     if (response.ok) {
+    //       currentUser = await response.json();
+    //       showScreen('lobbyScreen');
+    //       updateUserInfo();
+    //       refreshTables();
+    //     } else {
+    //       logout();
+    //     }
+    //   } catch (error) {
+    //     logout();
+    //   }
+    // }
 
     function logout() {
-      token = null;
-      currentUser = null;
-      localStorage.removeItem('token');
-      showScreen('loginScreen');
-    }
+    // On vide tout
+    localStorage.removeItem('poker_token');
+    localStorage.removeItem('userId');
+    token = null;
+    currentUserId = null;
 
-    function updateUserInfo() {
-      if (currentUser) {
-        document.getElementById('userUsername').textContent = currentUser.username;
-        document.getElementById('userBankroll').textContent = currentUser.chips || currentUser.bankroll || 1000;
-      }
-    }
+    showScreen('loginScreen');
+
+    // window.location.reload(); 
+}
+    // function updateUserInfo() {
+    //   if (currentUser) {
+    //     document.getElementById('userUsername').textContent = currentUser.username;
+    //     document.getElementById('userBankroll').textContent = currentUser.chips || currentUser.bankroll || 1000;
+    //   }
+    // }
 
     // ===== LOBBY FUNCTIONS =====
     function showCreateTableForm() {
@@ -576,268 +659,287 @@
     }
 
     function displayTables(tables) {
-      const container = document.getElementById('tablesContainer');
-      
-      if (tables.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 50px;">Aucune table disponible. Créez-en une !</div>';
-        return;
-      }
+    const container = document.getElementById('tablesContainer');
 
-      container.innerHTML = tables.map(table => `
-        <div class="table-card">
-          <h3>${table.name}</h3>
-          <div class="table-info">👥 Joueurs: ${table.players?.length || 0}/${table.maxPlayers}</div>
-          <div class="table-info">💰 Blinds: ${table.smallBlind}€ / ${table.bigBlind}€</div>
-          <div class="table-info">📊 Status: ${table.status}</div>
-          <button onclick="joinTable('${table.id}')">
-            ${table.status === 'playing' ? '👁️ Regarder' : '🎮 Rejoindre'}
+    const availableTables = tables.filter(table => table.status === 'waiting');
+
+    if (availableTables.length === 0) {
+      container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 50px;">Aucune table disponible. Créez-en une !</div>';
+      return;
+    }
+
+    container.innerHTML = availableTables.map(table => `
+      <div class="table-card">
+        <h3>${table.name}</h3>
+        <div class="table-info">👥 Joueurs: ${table.players?.length || 0}/${table.maxPlayers}</div>
+        <div class="table-info">💰 Blinds: ${table.smallBlind}€ / ${table.bigBlind}€</div>
+        <div class="table-info">📊 Status: En attente</div>
+        <button onclick="joinTable('${table.id}')">
+            🎮 Rejoindre
           </button>
         </div>
       `).join('');
     }
 
-    async function joinTable(tableId) {
-      try {
-        const response = await fetch(`${API_URL}/tables/${tableId}/join`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      async function joinTable(tableId) {
+        try {
+          const response = await fetch(`${API_URL}/tables/${tableId}/join`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-        if (response.ok) {
-          currentTableId = tableId;
-          await startGame(tableId);
-        } else {
-          const error = await response.json();
-          alert(error.message || 'Impossible de rejoindre la table');
+          if (response.ok) {
+            currentTableId = tableId;
+            await startGame(tableId);
+          } else {
+            const error = await response.json();
+            alert(error.message || 'Impossible de rejoindre la table');
+          }
+        } catch (error) {
+          alert('Erreur de connexion au serveur');
         }
-      } catch (error) {
-        alert('Erreur de connexion au serveur');
       }
-    }
 
-    // ===== GAME FUNCTIONS =====
-    async function startGame(tableId) {
-      try {
-        const response = await fetch(`${API_URL}/game/tables/${tableId}/start`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      // ===== GAME FUNCTIONS =====
 
-        if (response.ok) {
-          let responseData = await response.json();
+      
+      async function startGame(tableId) {
+
+        BOT_NAME = GAMBLER_NAMES[Math.floor(Math.random() * GAMBLER_NAMES.length)];
+
+        try {
+          const response = await fetch(`${API_URL}/game/tables/${tableId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            let responseData = await response.json();
+            
+            // L'API renvoie { message: "...", table: {...} }
+            let gameState = responseData.table || responseData;
+            
+            // L'API peut aussi renvoyer un array
+            if (Array.isArray(gameState)) {
+              gameState = gameState[0];
+            }
+            
+            currentGameState = gameState;
+            showScreen('gameScreen');
+            updateGameUI(gameState);
+            addLog('🎮 Partie démarrée ! Les cartes sont distribuées.');
+          } else {
+            const error = await response.json();
+            alert(error.message || 'Impossible de démarrer la partie');
+          }
+        } catch (error) {
+          alert('Erreur lors du démarrage de la partie');
+          console.error(error);
+        }
+      }
+
+      function updateGameUI(gameState) {
+      // Mise à jour du Pot
+      const potElement = document.getElementById('gamePot');
+      if (potElement) potElement.textContent = gameState.pot || 0;
+
+      if (gameState.players && gameState.players.length >= 2) {
+          const player1 = gameState.players[0];
+          const player2 = gameState.players[1];
+
+          // Mise à jour Player 1 (Vous)
+          const p1Name = document.getElementById('player1Name');
+          if (p1Name) p1Name.textContent = player1.username;
           
-          // L'API renvoie { message: "...", table: {...} }
-          let gameState = responseData.table || responseData;
+          const p1Chips = document.getElementById('player1Chips');
+          if (p1Chips) p1Chips.textContent = player1.chips;
+
+          // Mise à jour Player 2 (IA)
+          const player2Box = document.getElementById('player2Box');
+          if (player2Box) {
+          const isBotTurn = (gameState.currentPlayerIndex === 1 && gameState.status === 'playing');
+          const p2Name = document.getElementById('player2Name');
+
           
-          // L'API peut aussi renvoyer un array
-          if (Array.isArray(gameState)) {
-            gameState = gameState[0];
+          if (p2Name) {
+              p2Name.textContent = BOT_NAME
           }
           
-          currentGameState = gameState;
-          showScreen('gameScreen');
-          updateGameUI(gameState);
-          addLog('🎮 Partie démarrée ! Les cartes sont distribuées.');
-        } else {
-          const error = await response.json();
-          alert(error.message || 'Impossible de démarrer la partie');
-        }
-      } catch (error) {
-        alert('Erreur lors du démarrage de la partie');
-        console.error(error);
+          // Highlight si c'est son tour
+          player2Box.classList.toggle('active', isBotTurn);
+          
+          const p2Chips = document.getElementById('player2Chips');
+          if (p2Chips) p2Chips.textContent = player2.chips;
+          }
+
+          // Gestion des cartes
+          renderCards('player1Cards', player1.cards);
+          
+          // Révélation des cartes du bot
+          if (gameState.status === 'finished') {
+          renderCards('player2Cards', player2.cards);
+          } else {
+          const p2Cards = document.getElementById('player2Cards');
+          if (p2Cards) p2Cards.innerHTML = '<div class="card hidden">🂠</div><div class="card hidden">🂠</div>';
+          }
       }
-    }
-
-    function updateGameUI(gameState) {
-    // Mise à jour du Pot
-    const potElement = document.getElementById('gamePot');
-    if (potElement) potElement.textContent = gameState.pot || 0;
-
-    if (gameState.players && gameState.players.length >= 2) {
-        const player1 = gameState.players[0];
-        const player2 = gameState.players[1];
-
-        // Mise à jour Player 1 (Vous)
-        const p1Name = document.getElementById('player1Name');
-        if (p1Name) p1Name.textContent = player1.username;
-        
-        const p1Chips = document.getElementById('player1Chips');
-        if (p1Chips) p1Chips.textContent = player1.chips;
-
-        // Mise à jour Player 2 (IA)
-        const player2Box = document.getElementById('player2Box');
-        if (player2Box) {
-        const isBotTurn = (gameState.currentPlayerIndex === 1 && gameState.status === 'playing');
-        const p2Name = player2Box.querySelector('.player-name');
-        
-        if (p2Name) {
-            p2Name.textContent = isBotTurn ? "🤖 IA (réfléchit...)" : "🤖 IA";
-        }
-        
-        // Highlight si c'est son tour
-        player2Box.classList.toggle('active', isBotTurn);
-        
-        const p2Chips = document.getElementById('player2Chips');
-        if (p2Chips) p2Chips.textContent = player2.chips;
-        }
-
-        // Gestion des cartes
-        renderCards('player1Cards', player1.cards);
-        
-        // Révélation des cartes du bot
-        if (gameState.status === 'finished') {
-        renderCards('player2Cards', player2.cards);
-        } else {
-        const p2Cards = document.getElementById('player2Cards');
-        if (p2Cards) p2Cards.innerHTML = '<div class="card hidden">🂠</div><div class="card hidden">🂠</div>';
-        }
-    }
-    }
-    
-    function renderCards(elementId, cards) {
-        const div = document.getElementById(elementId);
-            if (cards && cards.length > 0) {
-                div.innerHTML = cards.map(card => 
-                `<div class="card ${isRedSuit(card) ? 'red' : ''}">${card}</div>`
-            ).join('');
-        }
-    }
-
-
-    function formatCard(cardString) {
-      // Les cartes sont déjà formatées par l'API (ex: "J♣", "5♦")
-      return cardString || '?';
-    }
-
-    function isRedSuit(cardString) {
-      // Les cartes rouges contiennent ♥ ou ♦
-      return cardString && (cardString.includes('♥') || cardString.includes('♦'));
-    }
-
-    async function fold() {
-      await playAction('fold');
-    }
-
-    async function call() {
-      await playAction('call');
-    }
-
-    function showRaiseInput() {
-      document.getElementById('raiseInputArea').style.display = 'flex';
-    }
-
-    function hideRaiseInput() {
-      document.getElementById('raiseInputArea').style.display = 'none';
-    }
-
-    async function raise() {
-      const amount = parseInt(document.getElementById('raiseAmount').value);
-      if (!amount || amount <= 0) {
-        alert('Montant invalide');
-        return;
       }
-      hideRaiseInput();
-      await playAction('raise', amount);
-    }
+      
+      function renderCards(elementId, cards) {
+          const div = document.getElementById(elementId);
+              if (cards && cards.length > 0) {
+                  div.innerHTML = cards.map(card => 
+                  `<div class="card ${isRedSuit(card) ? 'red' : ''}">${card}</div>`
+              ).join('');
+          }
+      }
 
-    async function playAction(action, amount = null) {
+
+      function formatCard(cardString) {
+        // Les cartes sont déjà formatées par l'API (ex: "J♣", "5♦")
+        return cardString || '?';
+      }
+
+      function isRedSuit(cardString) {
+        // Les cartes rouges contiennent ♥ ou ♦
+        return cardString && (cardString.includes('♥') || cardString.includes('♦'));
+      }
+
+      async function fold() {
+        await playAction('fold');
+      }
+
+      async function call() {
+        await playAction('call');
+      }
+
+      function showRaiseInput() {
+        document.getElementById('raiseInputArea').style.display = 'flex';
+      }
+
+      function hideRaiseInput() {
+        document.getElementById('raiseInputArea').style.display = 'none';
+      }
+
+      async function raise() {
+        const amount = parseInt(document.getElementById('raiseAmount').value);
+        if (!amount || amount <= 0) {
+          alert('Montant invalide');
+          return;
+        }
+        hideRaiseInput();
+        await playAction('raise', amount);
+      }
+
+      async function playAction(action, amount = null) {
     try {
-        disableActionButtons(true);
-        addLog(`⏳ Envoi de l'action : ${action}...`);
+      // 1. Désactiver les boutons pour éviter le spam pendant les 2s de réflexion
+      disableActionButtons(true);
+      
+      // 2. Affichage immédiat dans l'historique
+      addLog(`⏳ Vous avez choisi : ${action}${amount ? ' (' + amount + '€)' : ''}`);
+      
+      // Message d'ambiance pour montrer que le Bot prend la main
+      const botThinkingMsg = `💬 ${BOT_NAME} examine ses cartes...`;
+      addLog(botThinkingMsg);
 
-        const body = { action };
-        if (amount !== null) body.amount = amount;
+      // Préparation du corps de la requête
+      const body = { action };
+      if (amount !== null) body.amount = amount;
 
-        const response = await fetch(`${API_URL}/game/tables/${currentTableId}/action`, {
+      // 3. Appel API (Le 'await' va bloquer ici pendant les 2 secondes du serveur)
+      const response = await fetch(`${API_URL}/game/tables/${currentTableId}/action`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(body)
-        });
+      });
 
-        if (response.ok) {
-        const responseData = await response.json();
-        let gameState = responseData.table || responseData;
+      if (response.ok) {
+        const data = await response.json();
+        // On récupère l'objet table (soit directement, soit dans data.table)
+        let gameState = data.table || data;
         if (Array.isArray(gameState)) gameState = gameState[0];
 
         currentGameState = gameState;
         
-        // Mise à jour visuelle (cartes, jetons, etc.)
+        // 4. Mise à jour visuelle (Jetons, Cartes, etc.)
         updateGameUI(gameState);
 
-        // Gestion de la fin de partie
+        // 5. Analyse du résultat renvoyé par le serveur
         if (gameState.status === 'finished') {
-            const winnerName = gameState.lastWinner || "L'adversaire";
-            addLog(`🏆 FIN DE PARTIE : ${winnerName} remporte le pot !`);
-            
-            // On laisse 5 secondes pour voir les cartes révélées
-            setTimeout(() => {
+          // Le bot s'est forcément couché selon ta logique service
+          addLog(`❌ ${BOT_NAME} ne veut pas prendre de risque et se couche (Fold).`);
+          
+          const winnerName = gameState.lastWinner || "L'adversaire";
+          addLog(`🏆 FIN DE PARTIE : ${winnerName} remporte le pot !`);
+          
+          refreshDashboardStats();
+          // Laisser les cartes visibles 5 secondes avant de fermer l'alerte
+          setTimeout(() => {
             alert(`Partie terminée ! Gagnant : ${winnerName}`);
+            // Optionnel : Retour au lobby ou reset
             showScreen('lobbyScreen');
             refreshTables();
-            }, 5000);
+          }, 5000);
         } else {
-            // Si la partie continue, on ne débloque les boutons que si c'est à nous
-            const isMyTurn = (gameState.currentPlayerIndex === 0);
-            disableActionButtons(!isMyTurn);
-            if (!isMyTurn) addLog("🤖 L'IA réfléchit...");
+          // Si la partie n'est pas finie, on vérifie si c'est à nouveau notre tour
+          const isMyTurn = (gameState.currentPlayerIndex === 0);
+          disableActionButtons(!isMyTurn);
         }
 
-        } else {
+      } else {
         const error = await response.json();
         addLog(`❌ Erreur : ${error.message}`);
         disableActionButtons(false);
-        }
+      }
     } catch (error) {
-        console.error("Erreur playAction:", error);
-        addLog('❌ Erreur technique de connexion');
-        disableActionButtons(false);
-        }   
+      console.error("Détails playAction:", error);
+      addLog('❌ Erreur technique de connexion au serveur');
+      disableActionButtons(false);
     }
+  }
 
+      function disableActionButtons(disabled) {
+        const buttons = document.querySelectorAll('.actions-area button');
+        buttons.forEach(button => {
+          button.disabled = disabled;
+          button.style.opacity = disabled ? '0.5' : '1';
+          button.style.cursor = disabled ? 'not-allowed' : 'pointer';
+        });
+      }
 
-    
+      function leaveGame() {
+        currentTableId = null;
+        currentGameState = null;
+        showScreen('lobbyScreen');
+        refreshTables();
+      }
 
-    function disableActionButtons(disabled) {
-      const buttons = document.querySelectorAll('.actions-area button');
-      buttons.forEach(button => {
-        button.disabled = disabled;
-        button.style.opacity = disabled ? '0.5' : '1';
-        button.style.cursor = disabled ? 'not-allowed' : 'pointer';
-      });
-    }
+      function addLog(message) {
+        const logDiv = document.getElementById('gameLog');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+        logDiv.insertBefore(entry, logDiv.firstChild);
+      }
 
-    function leaveGame() {
-      currentTableId = null;
-      currentGameState = null;
-      showScreen('lobbyScreen');
-      refreshTables();
-    }
+      // ===== UTILITY FUNCTIONS =====
+      function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+          screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+      }
 
-    function addLog(message) {
-      const logDiv = document.getElementById('gameLog');
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-      logDiv.insertBefore(entry, logDiv.firstChild);
-    }
-
-    // ===== UTILITY FUNCTIONS =====
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-      });
-      document.getElementById(screenId).classList.add('active');
-    }
-
-    function showError(message) {
-      document.getElementById('loginError').textContent = message;
-      setTimeout(() => {
-        document.getElementById('loginError').textContent = '';
-      }, 5000);
-    }
-  </script>
-</body>
-</html>
+      function showError(message) {
+        document.getElementById('loginError').textContent = message;
+        setTimeout(() => {
+          document.getElementById('loginError').textContent = '';
+        }, 5000);
+      }
+    </script>
+  </body>
+  </html>

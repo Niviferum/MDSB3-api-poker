@@ -101,3 +101,40 @@ Toutes les routes à part `auth/register` et `auth/login` nécessitent un token 
 4. Toutes les prochaines requêtes seront authentifiées tant qu'il n'y a pas de rafraîchissment de la page.
 
 
+# déroulement d'une partie
+
+#### 1. Distribution des cartes
+
+    Chaque joueur reçoit 2 cartes privées (hole cards)
+
+Les cartes ne sont visibles que par le joueur concerné
+
+#### 2. Les blindes
+
+    Small Blind : Le premier joueur mise obligatoirement la petite blinde
+
+Big Blind : Le deuxième joueur mise obligatoirement la grosse blinde (2x la SB)Ces mises obligatoires créent le pot initial
+
+#### 3. Tour de mise (Betting Round)
+Le joueur après la grosse blinde commence, et chaque joueur peut :
+
+Actions disponibles :
+
+    FOLD : Se coucher (abandonner la main)
+
+CALL : Suivre la mise actuelleRAISE : Relancer (augmenter la mise, minimum 2x la mise actuelle)CHECK : Passer (uniquement si aucune mise n'a été faite)#### 4. Fin du round
+Le tour de mise se termine quand :
+
+    Un seul joueur reste en jeu (tous les autres ont fold)
+
+Tous les joueurs actifs ont misé le même montant#### 5. Détermination du gagnant
+Version actuelle (simplifiée) :
+
+    Le dernier joueur actif (qui n'a pas fold) remporte le pot
+
+
+Version future (avec comparaison de mains) :
+
+    Les cartes communautaires seront révélées (Flop, Turn, River)
+
+La meilleure combinaison de 5 cartes gagne

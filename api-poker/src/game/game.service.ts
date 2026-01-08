@@ -3,6 +3,7 @@ import { CardsService } from '../cards/cards.service';
 import { TablesService } from '../tables/tables.service';
 import { DatabaseService, Table, Player } from '../shared/database.service';
 import { PlayActionDto, ActionType } from './dto/play-action.dto';
+import { PlayersService } from 'src/players/players.service';
 
 @Injectable()
 export class GameService {
@@ -10,6 +11,7 @@ export class GameService {
     private cardsService: CardsService,
     private tablesService: TablesService,
     private databaseService: DatabaseService,
+    private playersService: PlayersService,
   ) {}
 
   /**
@@ -180,5 +182,16 @@ export class GameService {
 
     const deckId = (table as any).deckId;
     if (deckId) this.cardsService.deleteDeck(deckId);
+
+    for (const player of table.players) {
+      if (!player.isAI) {
+        const isWinner = player.userId === winner.userId;
+        await this.playersService.incrementStats(player.userId, isWinner);
+      }
+    }
+
+    setTimeout(() => {
+        this.tablesService.deleteTable(tableId); 
+    }, 10000);
   }
 }

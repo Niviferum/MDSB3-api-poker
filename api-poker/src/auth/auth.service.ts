@@ -31,7 +31,9 @@ export class AuthService {
       email: dto.email,
       password: hashedPassword,
       chips: 1000,
-      createdAt: new Date()
+      createdAt: new Date(),
+      gamesPlayed: 0,
+      gamesWon: 0
     };
 
     this.databaseService.addUser(newUser);
@@ -71,6 +73,7 @@ export class AuthService {
     return {
       success: true,
       token,
+      userId: user.id,
       user: userWithoutPassword
     };
   }
