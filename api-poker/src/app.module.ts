@@ -10,6 +10,7 @@ import { Table } from './tables/entities/table.entity';
 import { PlayerInGame } from './tables/entities/player-in-game.entity';
 import { GameStats } from './tables/entities/game-stats.entity';
 import { SharedModule } from './shared/shared.module';
+import { GameModule } from './game/game.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { SharedModule } from './shared/shared.module';
     UsersModule,
     PlayersModule,
     TablesModule,
+    GameModule,
   ],
 })
 export class AppModule {}
