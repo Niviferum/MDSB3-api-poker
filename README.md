@@ -1,7 +1,7 @@
 # Poker API – Setup Guide
 ## Prérequis
 
-Docker Desktop (obligatoire)
+Docker Desktop
 https://www.docker.com/products/docker-desktop
 
 Git
@@ -16,38 +16,22 @@ Git
 
 Aucune modification n’est nécessaire en mode Docker.
 
-###  3. Lancer le projet (Docker)
+###  ~~3. Lancer le projet (Docker)~~
 
-Assure-toi que Docker Desktop est lancé, puis :
+~~Assure-toi que Docker Desktop est lancé, puis :~~
 
-``docker compose up --build``
+~~``docker compose up --build``~~
 
-``docker compose up -d`` |  Ou en arrière-plan 
+~~``docker compose up -d`` |  Ou en arrière-plan~~
 
+### 4. Lancer le projet (npm)
 
-L’API sera disponible sur :
+Navigue dans api-poker | ``cd api-poker``
 
-**http://localhost:3030/api**
+``npm install``
 
-###  4. Vérifier la base de données
+``npm run start:dev``
 
-
-
-``docker exec -it poker_db psql -U postgres -d poker_db`` | Entrer dans PostgreSQL 
-
-
-``\dt`` | Lister les tables 
-
-
-``\q`` | Quitter 
-
-###  5. Arrêter le projet
-``docker compose down``
-
-``docker compose down -v`` | Supprimer aussi la base (reset complet) 
-
-###  6. Relancer plus tard
-``docker compose up``
 
 
 ## Routes Principales
@@ -81,7 +65,7 @@ L'API a été documentée avec *Swagger* : **http://localhost:3030/api**
 - `DELETE /cards/deck/{deckId}`| Supprimer un packet précis
 - `GET /cards/decks`| Lister les packets actifs
 
-### GAME (WIP)
+### GAME
 
 - `POST /game/tables/{id}/start`| démarrer une partie (distribution cartes + blindes)
 - `POST /game/tables/{id}/action`| Jouer une action (fold/call/raise/check)
@@ -101,7 +85,11 @@ Toutes les routes à part `auth/register` et `auth/login` nécessitent un token 
 4. Toutes les prochaines requêtes seront authentifiées tant qu'il n'y a pas de rafraîchissment de la page.
 
 
-# déroulement d'une partie
+# Déroulement d'une partie
+
+Lien de l'interface de jeu : http://localhost:3030/poker.html
+
+
 
 #### 1. Distribution des cartes
 
@@ -122,7 +110,9 @@ Actions disponibles :
 
     FOLD : Se coucher (abandonner la main)
     CALL : Suivre la mise actuelleRAISE : Relancer (augmenter la mise, minimum 2x la mise actuelle)
-    CHECK : Passer (uniquement si aucune mise n'a été faite)#### 4. Fin du round
+    CHECK : Passer (uniquement si aucune mise n'a été faite)
+    
+#### 4. Fin du round
 
 Le tour de mise se termine quand :
 
