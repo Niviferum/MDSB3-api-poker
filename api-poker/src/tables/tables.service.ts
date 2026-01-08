@@ -24,7 +24,8 @@ export class TablesService {
       currentPlayerIndex: 0,
       currentBet: 0,
       status: 'waiting',
-      createdAt: new Date()
+      createdAt: new Date(),
+      currentBet: 0
     };
 
     this.databaseService.addTable(newTable);
