@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poker Texas Hold'em</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #ffd700;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Login Screen */
+    .login-form {
+      max-width: 400px;
+      margin: 50px auto;
+      background: #16213e;
+      padding: 30px;
+      border-radius: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #0f3460;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: #e94560;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #c23550;
+    }
+
+    button.secondary {
+      background: #0f3460;
+    }
+
+    button.secondary:hover {
+      background: #1a5490;
+    }
+
+    .info {
+      text-align: center;
+      margin-top: 20px;
+      padding: 15px;
+      background: #0f3460;
+      border-radius: 5px;
+    }
+
+    .error {
+      color: #e94560;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Lobby Screen */
+    .lobby-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #16213e;
+      border-radius: 10px;
+    }
+
+    .user-info {
+      color: #ffd700;
+      font-size: 18px;
+    }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .table-card {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #0f3460;
+    }
+
+    .table-card h3 {
+      color: #ffd700;
+      margin-bottom: 15px;
+    }
+
+    .table-info {
+      margin-bottom: 10px;
+      color: #aaa;
+    }
+
+    .table-card button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    /* Game Screen */
+    .game-container {
+      background: #16213e;
+      padding: 30px;
+      border-radius: 10px;
+    }
+
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #0f3460;
+    }
+
+    .pot {
+      font-size: 24px;
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .players-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .player-box {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 10px;
+      border: 3px solid transparent;
+    }
+
+    .player-box.active {
+      border-color: #ffd700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .player-box.ai {
+      opacity: 0.8;
+    }
+
+    .player-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #ffd700;
+    }
+
+    .player-chips {
+      font-size: 16px;
+      color: #4ecca3;
+      margin-bottom: 10px;
+    }
+
+    .player-cards {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .card {
+      background: #fff;
+      color: #000;
+      padding: 20px 15px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      min-width: 60px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .card.hidden {
+      background: #e94560;
+      color: transparent;
+    }
+
+    .card.red {
+      color: #e94560;
+    }
+
+    .actions-area {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .actions-area button {
+      flex: 1;
+      padding: 15px;
+      font-size: 18px;
+    }
+
+    .game-log {
+      margin-top: 30px;
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .game-log h3 {
+      margin-bottom: 15px;
+      color: #ffd700;
+    }
+
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #16213e;
+      color: #aaa;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .raise-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .raise-input input {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+      <h1>🃏 Poker Texas Hold'em 🃏</h1>
+      <div class="login-form">
+        <h2 style="text-align: center; margin-bottom: 20px;">Connexion</h2>
+        
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" placeholder="Votre pseudo">
+        </div>
+        
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="votre@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+
+        <button onclick="register()">S'inscrire (1000€)</button>
+        <button class="secondary" onclick="login()">Se connecter</button>
+        
+        <div id="loginError" class="error"></div>
+      </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="screen">
+      <h1>🃏 Lobby - Tables de Poker 🃏</h1>
+      
+      <div class="lobby-header">
+        <div class="user-info">
+          <div>👤 <span id="userUsername">Player</span></div>
+          <div>💰 <span id="userBankroll">1000</span>€</div>
+        </div>
+        <div>
+          <button onclick="showCreateTableForm()">+ Créer une table</button>
+          <button class="secondary" onclick="refreshTables()">🔄 Rafraîchir</button>
+          <button class="secondary" onclick="logout()">Déconnexion</button>
+        </div>
+      </div>
+
+      <div id="createTableForm" style="display: none; max-width: 400px; margin: 0 auto 30px; background: #16213e; padding: 20px; border-radius: 10px;">
+        <h3 style="margin-bottom: 15px;">Créer une nouvelle table</h3>
+        <div class="form-group">
+          <label>Nom de la table</label>
+          <input type="text" id="tableName" placeholder="Table VIP">
+        </div>
+        <div class="form-group">
+          <label>Petite blind</label>
+          <input type="number" id="smallBlind" value="10">
+        </div>
+        <div class="form-group">
+          <label>Grosse blind</label>
+          <input type="number" id="bigBlind" value="20">
+        </div>
+        <button onclick="createTable()">Créer</button>
+        <button class="secondary" onclick="hideCreateTableForm()">Annuler</button>
+      </div>
+
+      <div id="tablesContainer" class="tables-grid">
+        <!-- Tables will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+      <div class="game-container">
+        <div class="game-header">
+          <h1>🃏 Partie en cours</h1>
+          <div class="pot">Pot: <span id="gamePot">0</span>€</div>
+          <button class="secondary" onclick="leaveGame()">Quitter la partie</button>
+        </div>
+
+        <div class="players-area">
+          <!-- Player 1 (You) -->
+          <div id="player1Box" class="player-box">
+            <div class="player-name">👤 <span id="player1Name">Vous</span></div>
+            <div class="player-chips">💰 <span id="player1Chips">1000</span>€</div>
+            <div style="color: #aaa;">Mise: <span id="player1Bet">0</span>€</div>
+            <div class="player-cards" id="player1Cards">
+              <!-- Cards will appear here -->
+            </div>
+          </div>
+
+          <!-- Player 2 (AI) -->
+          <div id="player2Box" class="player-box ai">
+            <div class="player-name">🤖 <span id="player2Name">IA</span></div>
+            <div class="player-chips">💰 <span id="player2Chips">1000</span>€</div>
+            <div style="color: #aaa;">Mise: <span id="player2Bet">0</span>€</div>
+            <div class="player-cards" id="player2Cards">
+              <!-- Hidden cards -->
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-area">
+          <button onclick="fold()">Fold (Se coucher)</button>
+          <button onclick="call()">Call (Suivre)</button>
+          <button onclick="showRaiseInput()">Raise (Relancer)</button>
+        </div>
+
+        <div id="raiseInputArea" style="display: none; margin-top: 20px;">
+          <div style="background: #0f3460; padding: 20px; border-radius: 10px;">
+            <label style="display: block; margin-bottom: 10px; color: #ffd700; font-size: 16px;">💰 Montant de la relance (€)</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="number" id="raiseAmount" placeholder="Ex: 50" min="1" style="flex: 1;">
+              <button onclick="raise()" style="width: auto; padding: 10px 30px;">✅ Relancer</button>
+              <button class="secondary" onclick="hideRaiseInput()" style="width: auto; padding: 10px 30px;">❌ Annuler</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="game-log">
+          <h3>📜 Historique</h3>
+          <div id="gameLog">
+            <div class="log-entry">En attente du début de la partie...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3030';
+    let token = localStorage.getItem('token') || null;
+    let currentUser = null;
+    let currentTableId = null;
+    let currentGameState = null;
+
+    // Initialize
+    if (token) {
+      loadUserProfile();
+    }
+
+    // ===== AUTH FUNCTIONS =====
+    async function register() {
+      const username = document.getElementById('loginUsername').value;
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      if (!username || !email || !password) {
+        showError('Tous les champs sont obligatoires');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          token = data.token;
+          localStorage.setItem('token', token);
+          currentUser = data.user;
+          showScreen('lobbyScreen');
+          updateUserInfo();
+          refreshTables();
+        } else {
+          showError(data.message || 'Erreur lors de l\'inscription');
+        }
+      } catch (error) {
+        showError('Erreur de connexion au serveur');
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+
+      if (!username || !password) {
+        showError('Username et password obligatoires');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          token = data.token;
+          localStorage.setItem('token', token);
+          currentUser = data.user;
+          showScreen('lobbyScreen');
+          updateUserInfo();
+          refreshTables();
+        } else {
+          showError(data.message || 'Erreur lors de la connexion');
+        }
+      } catch (error) {
+        showError('Erreur de connexion au serveur');
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          currentUser = await response.json();
+          showScreen('lobbyScreen');
+          updateUserInfo();
+          refreshTables();
+        } else {
+          logout();
+        }
+      } catch (error) {
+        logout();
+      }
+    }
+
+    function logout() {
+      token = null;
+      currentUser = null;
+      localStorage.removeItem('token');
+      showScreen('loginScreen');
+    }
+
+    function updateUserInfo() {
+      if (currentUser) {
+        document.getElementById('userUsername').textContent = currentUser.username;
+        document.getElementById('userBankroll').textContent = currentUser.chips || currentUser.bankroll || 1000;
+      }
+    }
+
+    // ===== LOBBY FUNCTIONS =====
+    function showCreateTableForm() {
+      document.getElementById('createTableForm').style.display = 'block';
+    }
+
+    function hideCreateTableForm() {
+      document.getElementById('createTableForm').style.display = 'none';
+    }
+
+    async function createTable() {
+      const name = document.getElementById('tableName').value || 'Table';
+      const smallBlind = parseInt(document.getElementById('smallBlind').value) || 10;
+      const bigBlind = parseInt(document.getElementById('bigBlind').value) || 20;
+
+      try {
+        const response = await fetch(`${API_URL}/tables`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name,
+            maxPlayers: 6,
+            smallBlind,
+            bigBlind
+          })
+        });
+
+        if (response.ok) {
+          hideCreateTableForm();
+          refreshTables();
+        } else {
+          alert('Erreur lors de la création de la table');
+        }
+      } catch (error) {
+        alert('Erreur de connexion au serveur');
+      }
+    }
+
+    async function refreshTables() {
+      try {
+        const response = await fetch(`${API_URL}/tables`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const tables = await response.json();
+          displayTables(tables);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des tables:', error);
+      }
+    }
+
+    function displayTables(tables) {
+      const container = document.getElementById('tablesContainer');
+      
+      if (tables.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #aaa; padding: 50px;">Aucune table disponible. Créez-en une !</div>';
+        return;
+      }
+
+      container.innerHTML = tables.map(table => `
+        <div class="table-card">
+          <h3>${table.name}</h3>
+          <div class="table-info">👥 Joueurs: ${table.players?.length || 0}/${table.maxPlayers}</div>
+          <div class="table-info">💰 Blinds: ${table.smallBlind}€ / ${table.bigBlind}€</div>
+          <div class="table-info">📊 Status: ${table.status}</div>
+          <button onclick="joinTable('${table.id}')">
+            ${table.status === 'playing' ? '👁️ Regarder' : '🎮 Rejoindre'}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function joinTable(tableId) {
+      try {
+        const response = await fetch(`${API_URL}/tables/${tableId}/join`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          currentTableId = tableId;
+          await startGame(tableId);
+        } else {
+          const error = await response.json();
+          alert(error.message || 'Impossible de rejoindre la table');
+        }
+      } catch (error) {
+        alert('Erreur de connexion au serveur');
+      }
+    }
+
+    // ===== GAME FUNCTIONS =====
+    async function startGame(tableId) {
+      try {
+        const response = await fetch(`${API_URL}/game/tables/${tableId}/start`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          let responseData = await response.json();
+          
+          // L'API renvoie { message: "...", table: {...} }
+          let gameState = responseData.table || responseData;
+          
+          // L'API peut aussi renvoyer un array
+          if (Array.isArray(gameState)) {
+            gameState = gameState[0];
+          }
+          
+          currentGameState = gameState;
+          showScreen('gameScreen');
+          updateGameUI(gameState);
+          addLog('🎮 Partie démarrée ! Les cartes sont distribuées.');
+        } else {
+          const error = await response.json();
+          alert(error.message || 'Impossible de démarrer la partie');
+        }
+      } catch (error) {
+        alert('Erreur lors du démarrage de la partie');
+        console.error(error);
+      }
+    }
+
+    function updateGameUI(gameState) {
+      // Update pot
+      document.getElementById('gamePot').textContent = gameState.pot || 0;
+
+      // Update players
+      if (gameState.players && gameState.players.length >= 2) {
+        const player1 = gameState.players[0];
+        const player2 = gameState.players[1];
+
+        // Player 1 (You)
+        document.getElementById('player1Name').textContent = player1.username;
+        document.getElementById('player1Chips').textContent = player1.chips;
+        document.getElementById('player1Bet').textContent = player1.currentBet || 0;
+        
+        // Display cards for player 1
+        const player1CardsDiv = document.getElementById('player1Cards');
+        if (player1.cards && player1.cards.length > 0) {
+          player1CardsDiv.innerHTML = player1.cards.map(card => 
+            `<div class="card ${isRedSuit(card) ? 'red' : ''}">${formatCard(card)}</div>`
+          ).join('');
+        }
+
+        // Player 2 (AI)
+        document.getElementById('player2Name').textContent = player2.username;
+        document.getElementById('player2Chips').textContent = player2.chips;
+        document.getElementById('player2Bet').textContent = player2.currentBet || 0;
+        
+        // Display AI cards (hidden during game, revealed at end)
+        const player2CardsDiv = document.getElementById('player2Cards');
+        const gameEnded = gameState.status === 'waiting' || gameState.status === 'finished';
+        
+        if (gameEnded && player2.cards && player2.cards.length > 0) {
+          // Révéler les cartes du bot à la fin
+          player2CardsDiv.innerHTML = player2.cards.map(card => 
+            `<div class="card ${isRedSuit(card) ? 'red' : ''}">${formatCard(card)}</div>`
+          ).join('');
+        } else {
+          // Cartes cachées pendant la partie
+          player2CardsDiv.innerHTML = '<div class="card hidden">🂠</div><div class="card hidden">🂠</div>';
+        }
+
+        // Highlight current player
+        const currentPlayerIndex = gameState.currentPlayerIndex || 0;
+        document.getElementById('player1Box').classList.toggle('active', currentPlayerIndex === 0);
+        document.getElementById('player2Box').classList.toggle('active', currentPlayerIndex === 1);
+      }
+    }
+
+    function formatCard(cardString) {
+      // Les cartes sont déjà formatées par l'API (ex: "J♣", "5♦")
+      return cardString || '?';
+    }
+
+    function isRedSuit(cardString) {
+      // Les cartes rouges contiennent ♥ ou ♦
+      return cardString && (cardString.includes('♥') || cardString.includes('♦'));
+    }
+
+    async function fold() {
+      await playAction('fold');
+    }
+
+    async function call() {
+      await playAction('call');
+    }
+
+    function showRaiseInput() {
+      document.getElementById('raiseInputArea').style.display = 'flex';
+    }
+
+    function hideRaiseInput() {
+      document.getElementById('raiseInputArea').style.display = 'none';
+    }
+
+    async function raise() {
+      const amount = parseInt(document.getElementById('raiseAmount').value);
+      if (!amount || amount <= 0) {
+        alert('Montant invalide');
+        return;
+      }
+      hideRaiseInput();
+      await playAction('raise', amount);
+    }
+
+    async function playAction(action, amount = null) {
+    try {
+        // Désactiver les boutons pendant l'action
+        disableActionButtons(true);
+
+        const body = { action };
+        if (amount !== null) {
+        body.amount = amount;
+        }
+
+        const response = await fetch(
+        `${API_URL}/game/tables/${currentTableId}/action`,
+        {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+        }
+        );
+
+        if (response.ok) {
+        let responseData = await response.json();
+
+        // L'API peut renvoyer { message, table } ou directement la table
+        let gameState = responseData.table || responseData;
+
+        // L'API peut aussi renvoyer un tableau
+        if (Array.isArray(gameState)) {
+            gameState = gameState[0];
+        }
+
+        currentGameState = gameState;
+        updateGameUI(gameState);
+
+        addLog(
+            `✅ Action jouée: ${action.toUpperCase()}${amount ? ` (${amount}€)` : ''}`
+        );
+
+        // Vérifier si la partie est terminée
+        if (gameState.status === 'waiting' || gameState.status === 'finished') {
+            // Révéler les cartes
+            updateGameUI(gameState);
+
+            // Trouver le gagnant (logique à ajuster selon tes règles)
+            const winner =
+            gameState.players.find(p => p.chips > 1000) ||
+            gameState.players[0];
+
+            addLog(`🏆 ${winner.username} remporte la partie avec ${gameState.pot}€ !`);
+            addLog('🃏 Cartes révélées !');
+
+            // Retour au lobby après 5 secondes
+            setTimeout(() => {
+            showScreen('lobbyScreen');
+            refreshTables();
+            }, 5000);
+        } else {
+            // Réactiver les boutons si la partie continue
+            disableActionButtons(false);
+        }
+
+        } else {
+        const error = await response.json();
+        addLog(`❌ ${error.message}`);
+        disableActionButtons(false);
+        }
+
+    } catch (error) {
+        addLog('❌ Erreur lors de l\'action');
+        console.error(error);
+        disableActionButtons(false);
+    }
+    }
+
+
+    
+
+    function disableActionButtons(disabled) {
+      const buttons = document.querySelectorAll('.actions-area button');
+      buttons.forEach(button => {
+        button.disabled = disabled;
+        button.style.opacity = disabled ? '0.5' : '1';
+        button.style.cursor = disabled ? 'not-allowed' : 'pointer';
+      });
+    }
+
+    function leaveGame() {
+      currentTableId = null;
+      currentGameState = null;
+      showScreen('lobbyScreen');
+      refreshTables();
+    }
+
+    function addLog(message) {
+      const logDiv = document.getElementById('gameLog');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+      logDiv.insertBefore(entry, logDiv.firstChild);
+    }
+
+    // ===== UTILITY FUNCTIONS =====
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function showError(message) {
+      document.getElementById('loginError').textContent = message;
+      setTimeout(() => {
+        document.getElementById('loginError').textContent = '';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

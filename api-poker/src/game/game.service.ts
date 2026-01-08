@@ -209,34 +209,28 @@ const updatedPlayers = table.players.map((player) => {
     }
 
     // Passer au joueur suivant
-    const nextPlayerIndex = this.getNextPlayer(table);
+const nextPlayerIndex = this.getNextPlayer(table);
 
-    // Vérifier si le round est terminé
-    const roundOver = this.isRoundOver(table);
+// Vérifier si le round est terminé
+const roundOver = this.isRoundOver(table);
 
-    if (roundOver) {
-      // Terminer le round
-      const result = await this.endRound(tableId);
+if (roundOver) {
+  // Terminer le round et renvoyer l'état final
+  await this.endRound(tableId);
+  
+  return {
+    message: 'Round terminé',
+    table: table, // ← Ajoute la table complète
+  };
+}
 
-      return {
-        message: 'Round terminé',
-        action: action,
-        roundOver: true,
-        ...result,
-      };
-    }
+// Mettre à jour le joueur actif
+table.currentPlayerIndex = nextPlayerIndex;
 
-    // Mettre à jour le joueur actif
-    table.currentPlayerIndex = nextPlayerIndex;
-
-    return {
-      message: 'Action jouée avec succès',
-      action: action,
-      roundOver: false,
-      nextPlayer: table.players[nextPlayerIndex].username,
-      pot: table.pot,
-      currentBet: table.currentBet,
-    };
+return {
+  message: 'Action jouée avec succès',
+  table: table, // ← Ajoute la table complète
+};
   }
 
   /**
@@ -327,68 +321,72 @@ const updatedPlayers = table.players.map((player) => {
    * Termine le round : détermine le gagnant et distribue le pot
    */
   private async endRound(tableId: string): Promise<any> {
-    const table = await this.tablesService.getTableById(tableId);
+  const table = await this.tablesService.getTableById(tableId);
 
-    if (!table) {
-      throw new NotFoundException('Table non trouvée');
-    }
-
-    // Trouve le(s) gagnant(s) (version simple : dernier joueur actif)
-    const activePlayers = table.players.filter((p) => !p.hasFolded);
-
-    if (activePlayers.length === 0) {
-      throw new BadRequestException('Aucun joueur actif');
-    }
-
-    // Pour l'instant : le gagnant est le dernier joueur actif
-    const winner = activePlayers[0];
-
-    // Sauvegarder le pot avant de le réinitialiser
-    const winAmount = table.pot;
-
-    // Crédite le pot au gagnant
-    const newChips = winner.chips + table.pot;
-
-    // Met à jour les chips en base (seulement si ce n'est pas une IA)
-    if (!winner.isAI) {
-      const user = this.databaseService.findUserById(winner.userId);
-      if (user) {
-        user.chips = newChips;
-      }
-    }
-
-    // Supprimer le deck utilisé pour cette partie
-    const deckId = (table as any).deckId;
-    if (deckId) {
-      try {
-        this.cardsService.deleteDeck(deckId);
-      } catch (error) {
-        // Ignorer si le deck n'existe pas
-      }
-    }
-
-    // Réinitialise la table DIRECTEMENT
-    table.status = 'waiting';
-    table.pot = 0;
-    table.currentBet = 0;
-    table.currentPlayerIndex = 0;
-    table.players = table.players.map((p) => ({
-      ...p,
-      cards: [],
-      currentBet: 0,
-      hasFolded: false,
-      chips: p.userId === winner.userId ? newChips : p.chips,
-    }));
-    table.communityCards = [];
-    delete (table as any).deckId; // Supprimer le deckId
-
-    return {
-      winner: {
-        userId: winner.userId,
-        username: winner.username,
-        winAmount: winAmount,
-      },
-      finalPot: winAmount,
-    };
+  if (!table) {
+    throw new NotFoundException('Table non trouvée');
   }
+
+  // Trouve le(s) gagnant(s) (version simple : dernier joueur actif)
+  const activePlayers = table.players.filter((p) => !p.hasFolded);
+
+  if (activePlayers.length === 0) {
+    throw new BadRequestException('Aucun joueur actif');
+  }
+
+  // Pour l'instant : le gagnant est le dernier joueur actif (ou celui avec le plus de chips)
+  const winner = activePlayers.reduce((prev, current) => 
+    (current.chips > prev.chips) ? current : prev
+  );
+
+  // Sauvegarder le pot AVANT de le réinitialiser
+  const winAmount = table.pot;
+  
+  // Créditer le pot au gagnant
+  winner.chips += winAmount;
+
+  // Met à jour les chips en base (seulement si ce n'est pas une IA)
+  if (!winner.isAI) {
+    const user = this.databaseService.findUserById(winner.userId);
+    if (user) {
+      user.chips = winner.chips;
+    }
+  }
+
+  // Supprimer le deck utilisé pour cette partie
+  const deckId = (table as any).deckId;
+  if (deckId) {
+    try {
+      this.cardsService.deleteDeck(deckId);
+    } catch (error) {
+      // Ignorer si le deck n'existe pas
+    }
+  }
+
+  // Réinitialise la table
+  table.status = 'waiting';
+  table.pot = 0;
+  table.currentBet = 0;
+  table.currentPlayerIndex = 0;
+  table.communityCards = [];
+  
+  // Réinitialiser les données de jeu des joueurs (mais garder les chips)
+  table.players.forEach((p) => {
+    p.cards = [];
+    p.currentBet = 0;
+    p.hasFolded = false;
+  });
+  
+  delete (table as any).deckId;
+
+  return {
+    winner: {
+      userId: winner.userId,
+      username: winner.username,
+      winAmount: winAmount,
+    },
+    finalPot: winAmount,
+    table: table, // ← Renvoyer la table complète pour l'interface
+  };
+}
 }

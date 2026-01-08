@@ -27,7 +27,7 @@ interface AuthRequest extends Request {
 
 @ApiTags('Game')
 @Controller('game')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class GameController {
   constructor(private readonly gameService: GameService) {}

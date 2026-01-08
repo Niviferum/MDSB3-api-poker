@@ -4,6 +4,7 @@ import { CardsModule } from '../cards/cards.module';
 import { TablesModule } from '../tables/tables.module';
 import { SharedModule } from '../shared/shared.module';
 import { GameController } from './game.controller';
+import { TablesService } from 'src/tables/tables.service';
 
 @Module({
   imports: [CardsModule, TablesModule, SharedModule],
