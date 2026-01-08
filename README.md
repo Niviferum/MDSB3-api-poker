@@ -121,13 +121,16 @@ Le joueur après la grosse blinde commence, et chaque joueur peut :
 Actions disponibles :
 
     FOLD : Se coucher (abandonner la main)
+    CALL : Suivre la mise actuelleRAISE : Relancer (augmenter la mise, minimum 2x la mise actuelle)
+    CHECK : Passer (uniquement si aucune mise n'a été faite)#### 4. Fin du round
 
-CALL : Suivre la mise actuelleRAISE : Relancer (augmenter la mise, minimum 2x la mise actuelle)CHECK : Passer (uniquement si aucune mise n'a été faite)#### 4. Fin du round
 Le tour de mise se termine quand :
 
     Un seul joueur reste en jeu (tous les autres ont fold)
 
-Tous les joueurs actifs ont misé le même montant#### 5. Détermination du gagnant
+    Tous les joueurs actifs ont misé le même montant
+
+#### 5. Détermination du gagnant
 Version actuelle (simplifiée) :
 
     Le dernier joueur actif (qui n'a pas fold) remporte le pot
@@ -137,4 +140,4 @@ Version future (avec comparaison de mains) :
 
     Les cartes communautaires seront révélées (Flop, Turn, River)
 
-La meilleure combinaison de 5 cartes gagne
+La meilleure combinaison de 5 cartes gagne suivant les règles du poker classique (ex: Quinte Flush bat Brelan, Full bat Paire, etc.)
