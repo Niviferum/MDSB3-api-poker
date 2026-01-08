@@ -22,6 +22,7 @@ export class TablesService {
       pot: 0,
       communityCards: [],
       currentPlayerIndex: 0,
+      currentBet: 0,
       status: 'waiting',
       createdAt: new Date(),
       currentBet: 0

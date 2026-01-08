@@ -6,7 +6,7 @@ import { CreateCardDto, CreateDeckDto, DrawCardsDto } from './dto/card.dto';
 
 @ApiTags('Cards')
 @Controller('cards')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class CardsController {
   constructor(private cardsService: CardsService) {}
