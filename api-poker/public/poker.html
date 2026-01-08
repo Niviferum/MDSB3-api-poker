@@ -649,52 +649,60 @@
     }
 
     function updateGameUI(gameState) {
-      // Update pot
-      document.getElementById('gamePot').textContent = gameState.pot || 0;
+    // Mise à jour du Pot
+    const potElement = document.getElementById('gamePot');
+    if (potElement) potElement.textContent = gameState.pot || 0;
 
-      // Update players
-      if (gameState.players && gameState.players.length >= 2) {
+    if (gameState.players && gameState.players.length >= 2) {
         const player1 = gameState.players[0];
         const player2 = gameState.players[1];
 
-        // Player 1 (You)
-        document.getElementById('player1Name').textContent = player1.username;
-        document.getElementById('player1Chips').textContent = player1.chips;
-        document.getElementById('player1Bet').textContent = player1.currentBet || 0;
+        // Mise à jour Player 1 (Vous)
+        const p1Name = document.getElementById('player1Name');
+        if (p1Name) p1Name.textContent = player1.username;
         
-        // Display cards for player 1
-        const player1CardsDiv = document.getElementById('player1Cards');
-        if (player1.cards && player1.cards.length > 0) {
-          player1CardsDiv.innerHTML = player1.cards.map(card => 
-            `<div class="card ${isRedSuit(card) ? 'red' : ''}">${formatCard(card)}</div>`
-          ).join('');
+        const p1Chips = document.getElementById('player1Chips');
+        if (p1Chips) p1Chips.textContent = player1.chips;
+
+        // Mise à jour Player 2 (IA)
+        const player2Box = document.getElementById('player2Box');
+        if (player2Box) {
+        const isBotTurn = (gameState.currentPlayerIndex === 1 && gameState.status === 'playing');
+        const p2Name = player2Box.querySelector('.player-name');
+        
+        if (p2Name) {
+            p2Name.textContent = isBotTurn ? "🤖 IA (réfléchit...)" : "🤖 IA";
+        }
+        
+        // Highlight si c'est son tour
+        player2Box.classList.toggle('active', isBotTurn);
+        
+        const p2Chips = document.getElementById('player2Chips');
+        if (p2Chips) p2Chips.textContent = player2.chips;
         }
 
-        // Player 2 (AI)
-        document.getElementById('player2Name').textContent = player2.username;
-        document.getElementById('player2Chips').textContent = player2.chips;
-        document.getElementById('player2Bet').textContent = player2.currentBet || 0;
+        // Gestion des cartes
+        renderCards('player1Cards', player1.cards);
         
-        // Display AI cards (hidden during game, revealed at end)
-        const player2CardsDiv = document.getElementById('player2Cards');
-        const gameEnded = gameState.status === 'waiting' || gameState.status === 'finished';
-        
-        if (gameEnded && player2.cards && player2.cards.length > 0) {
-          // Révéler les cartes du bot à la fin
-          player2CardsDiv.innerHTML = player2.cards.map(card => 
-            `<div class="card ${isRedSuit(card) ? 'red' : ''}">${formatCard(card)}</div>`
-          ).join('');
+        // Révélation des cartes du bot
+        if (gameState.status === 'finished') {
+        renderCards('player2Cards', player2.cards);
         } else {
-          // Cartes cachées pendant la partie
-          player2CardsDiv.innerHTML = '<div class="card hidden">🂠</div><div class="card hidden">🂠</div>';
+        const p2Cards = document.getElementById('player2Cards');
+        if (p2Cards) p2Cards.innerHTML = '<div class="card hidden">🂠</div><div class="card hidden">🂠</div>';
         }
-
-        // Highlight current player
-        const currentPlayerIndex = gameState.currentPlayerIndex || 0;
-        document.getElementById('player1Box').classList.toggle('active', currentPlayerIndex === 0);
-        document.getElementById('player2Box').classList.toggle('active', currentPlayerIndex === 1);
-      }
     }
+    }
+    
+    function renderCards(elementId, cards) {
+        const div = document.getElementById(elementId);
+            if (cards && cards.length > 0) {
+                div.innerHTML = cards.map(card => 
+                `<div class="card ${isRedSuit(card) ? 'red' : ''}">${card}</div>`
+            ).join('');
+        }
+    }
+
 
     function formatCard(cardString) {
       // Les cartes sont déjà formatées par l'API (ex: "J♣", "5♦")
@@ -734,78 +742,59 @@
 
     async function playAction(action, amount = null) {
     try {
-        // Désactiver les boutons pendant l'action
         disableActionButtons(true);
+        addLog(`⏳ Envoi de l'action : ${action}...`);
 
         const body = { action };
-        if (amount !== null) {
-        body.amount = amount;
-        }
+        if (amount !== null) body.amount = amount;
 
-        const response = await fetch(
-        `${API_URL}/game/tables/${currentTableId}/action`,
-        {
-            method: 'POST',
-            headers: {
+        const response = await fetch(`${API_URL}/game/tables/${currentTableId}/action`, {
+        method: 'POST',
+        headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(body)
-        }
-        );
+        },
+        body: JSON.stringify(body)
+        });
 
         if (response.ok) {
-        let responseData = await response.json();
-
-        // L'API peut renvoyer { message, table } ou directement la table
+        const responseData = await response.json();
         let gameState = responseData.table || responseData;
-
-        // L'API peut aussi renvoyer un tableau
-        if (Array.isArray(gameState)) {
-            gameState = gameState[0];
-        }
+        if (Array.isArray(gameState)) gameState = gameState[0];
 
         currentGameState = gameState;
+        
+        // Mise à jour visuelle (cartes, jetons, etc.)
         updateGameUI(gameState);
 
-        addLog(
-            `✅ Action jouée: ${action.toUpperCase()}${amount ? ` (${amount}€)` : ''}`
-        );
-
-        // Vérifier si la partie est terminée
-        if (gameState.status === 'waiting' || gameState.status === 'finished') {
-            // Révéler les cartes
-            updateGameUI(gameState);
-
-            // Trouver le gagnant (logique à ajuster selon tes règles)
-            const winner =
-            gameState.players.find(p => p.chips > 1000) ||
-            gameState.players[0];
-
-            addLog(`🏆 ${winner.username} remporte la partie avec ${gameState.pot}€ !`);
-            addLog('🃏 Cartes révélées !');
-
-            // Retour au lobby après 5 secondes
+        // Gestion de la fin de partie
+        if (gameState.status === 'finished') {
+            const winnerName = gameState.lastWinner || "L'adversaire";
+            addLog(`🏆 FIN DE PARTIE : ${winnerName} remporte le pot !`);
+            
+            // On laisse 5 secondes pour voir les cartes révélées
             setTimeout(() => {
+            alert(`Partie terminée ! Gagnant : ${winnerName}`);
             showScreen('lobbyScreen');
             refreshTables();
             }, 5000);
         } else {
-            // Réactiver les boutons si la partie continue
-            disableActionButtons(false);
+            // Si la partie continue, on ne débloque les boutons que si c'est à nous
+            const isMyTurn = (gameState.currentPlayerIndex === 0);
+            disableActionButtons(!isMyTurn);
+            if (!isMyTurn) addLog("🤖 L'IA réfléchit...");
         }
 
         } else {
         const error = await response.json();
-        addLog(`❌ ${error.message}`);
+        addLog(`❌ Erreur : ${error.message}`);
         disableActionButtons(false);
         }
-
     } catch (error) {
-        addLog('❌ Erreur lors de l\'action');
-        console.error(error);
+        console.error("Erreur playAction:", error);
+        addLog('❌ Erreur technique de connexion');
         disableActionButtons(false);
-    }
+        }   
     }
 
 

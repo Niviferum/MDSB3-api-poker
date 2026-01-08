@@ -18,375 +18,167 @@ export class GameService {
   async startGame(tableId: string) {
     const table = await this.tablesService.getTableById(tableId);
 
-    if (!table) {
-      throw new NotFoundException('Table non trouvée');
-    }
+    if (!table) throw new NotFoundException('Table non trouvée');
+    if (table.players.length < 2) throw new BadRequestException('Il faut au moins 2 joueurs');
+    if (table.status === 'playing') throw new BadRequestException('Déjà en cours');
 
-    // Vérifier qu'il y a au moins 2 joueurs
-    if (table.players.length < 2) {
-      throw new BadRequestException(
-        'Il faut au moins 2 joueurs pour démarrer une partie',
-      );
-    }
-
-    // Vérifier que la table n'est pas déjà en jeu
-    if (table.status === 'playing') {
-      throw new BadRequestException('La partie est déjà en cours');
-    }
-
-    // Créer un deck de cartes pour la table avec un ID unique
     const deckId = `deck-${tableId}-${Date.now()}`;
     this.cardsService.createDeck(deckId);
 
+    const updatedPlayers = table.players.map((player) => {
+      const card1 = this.cardsService.drawCard(deckId);
+      const card2 = this.cardsService.drawCard(deckId);
+      return {
+        ...player,
+        cards: [card1.toString(), card2.toString()],
+        currentBet: 0,
+        hasFolded: false,
+      };
+    });
 
-const updatedPlayers = table.players.map((player) => {
-  const card1 = this.cardsService.drawCard(deckId);
-  const card2 = this.cardsService.drawCard(deckId);
+    // Blinds
+    updatedPlayers[0].chips -= table.smallBlind;
+    updatedPlayers[0].currentBet = table.smallBlind;
+    updatedPlayers[1].chips -= table.bigBlind;
+    updatedPlayers[1].currentBet = table.bigBlind;
 
-  return {
-    ...player,
-    cards: [card1.toString(), card2.toString()], // Convertir Card en string
-    currentBet: 0,
-    hasFolded: false,
-  };
-});
+    this.syncUserChips(updatedPlayers[0]);
+    this.syncUserChips(updatedPlayers[1]);
 
-    // Placer la petite blind (joueur 0)
-    const smallBlindAmount = table.smallBlind;
-    updatedPlayers[0].currentBet = smallBlindAmount;
-    updatedPlayers[0].chips -= smallBlindAmount;
-
-    // Placer la grosse blind (joueur 1)
-    const bigBlindAmount = table.bigBlind;
-    updatedPlayers[1].currentBet = bigBlindAmount;
-    updatedPlayers[1].chips -= bigBlindAmount;
-
-    // Calculer le pot initial (somme des blindes)
-    const initialPot = smallBlindAmount + bigBlindAmount;
-
-    // Le premier joueur à parler est après la grosse blind (joueur 2, ou joueur 0 si seulement 2 joueurs)
-    const firstPlayerIndex = updatedPlayers.length > 2 ? 2 : 0;
-
-    // Mettre à jour la table DIRECTEMENT (modification en mémoire)
     table.status = 'playing';
     table.players = updatedPlayers;
-    table.pot = initialPot;
-    table.currentBet = bigBlindAmount;
-    table.currentPlayerIndex = firstPlayerIndex;
-    table.communityCards = [];
-    (table as any).deckId = deckId; // Stocker le deckId pour pouvoir l'utiliser plus tard
+    table.pot = table.smallBlind + table.bigBlind;
+    table.currentBet = table.bigBlind;
+    table.currentPlayerIndex = updatedPlayers.length > 2 ? 2 : 0;
+    (table as any).deckId = deckId;
 
-    // Mettre à jour les chips en base (seulement pour les vrais joueurs, pas les IA)
-    if (!updatedPlayers[0].isAI) {
-      const user0 = this.databaseService.findUserById(updatedPlayers[0].userId);
-      if (user0) {
-        user0.chips = updatedPlayers[0].chips;
-      }
-    }
-    if (!updatedPlayers[1].isAI) {
-      const user1 = this.databaseService.findUserById(updatedPlayers[1].userId);
-      if (user1) {
-        user1.chips = updatedPlayers[1].chips;
-      }
-    }
-
-    return {
-      message: 'Partie démarrée avec succès',
-      table: {
-        id: table.id,
-        status: table.status,
-        pot: table.pot,
-        currentBet: table.currentBet,
-        currentPlayer: table.currentPlayerIndex,
-        deckId: deckId,
-        players: table.players.map((p) => ({
-          userId: p.userId,
-          username: p.username,
-          chips: p.chips,
-          currentBet: p.currentBet,
-          cards: p.cards,
-        })),
-      },
-    };
+    return { message: 'Partie démarrée', table };
   }
 
-  /**
-   * Joue une action (fold, call, raise, check)
-   */
-  async playAction(
-    tableId: string,
-    userId: string,
-    playActionDto: PlayActionDto,
-  ) {
-    const table = await this.tablesService.getTableById(tableId);
-
-    if (!table) {
-      throw new NotFoundException('Table non trouvée');
-    }
-
-    if (table.status !== 'playing') {
-      throw new BadRequestException('La partie n\'est pas en cours');
-    }
-
-    // Vérifier que c'est bien le tour du joueur
-    const currentPlayer = table.players[table.currentPlayerIndex];
-    if (currentPlayer.userId !== userId) {
-      throw new BadRequestException('Ce n\'est pas votre tour de jouer');
-    }
-
-    const { action, amount } = playActionDto;
-
-    // Traiter l'action selon le type
-    switch (action) {
-      case ActionType.FOLD:
-        // Marquer le joueur comme ayant fold
-        table.players[table.currentPlayerIndex].hasFolded = true;
-        break;
-
-      case ActionType.CALL:
-        // Calculer le montant à suivre
-        const amountToCall = table.currentBet - currentPlayer.currentBet;
-
-        if (currentPlayer.chips < amountToCall) {
-          throw new BadRequestException('Chips insuffisants pour call');
-        }
-
-        // Débiter les chips et ajouter au pot
-        table.players[table.currentPlayerIndex].chips -= amountToCall;
-        table.players[table.currentPlayerIndex].currentBet += amountToCall;
-        table.pot += amountToCall;
-        break;
-
-      case ActionType.RAISE:
-        if (!amount || amount <= 0) {
-          throw new BadRequestException(
-            'Le montant du raise doit être supérieur à 0',
-          );
-        }
-
-        // Le raise doit être au moins égal au double de la mise actuelle
-        const minRaise = table.currentBet * 2;
-        if (amount < minRaise) {
-          throw new BadRequestException(
-            `Le raise minimum est de ${minRaise} chips`,
-          );
-        }
-
-        // Calculer le montant total à débiter
-        const amountToRaise = amount - currentPlayer.currentBet;
-
-        if (currentPlayer.chips < amountToRaise) {
-          throw new BadRequestException('Chips insuffisants pour raise');
-        }
-
-        // Débiter les chips, mettre à jour la mise et le pot
-        table.players[table.currentPlayerIndex].chips -= amountToRaise;
-        table.players[table.currentPlayerIndex].currentBet = amount;
-        table.pot += amountToRaise;
-        table.currentBet = amount;
-        break;
-
-      case ActionType.CHECK:
-        // Vérifier que le check est autorisé (pas de mise à suivre)
-        if (currentPlayer.currentBet < table.currentBet) {
-          throw new BadRequestException(
-            'Impossible de checker, vous devez call ou raise',
-          );
-        }
-        // Le check ne change rien, on passe juste au joueur suivant
-        break;
-
-      default:
-        throw new BadRequestException('Action invalide');
-    }
-
-    // Mettre à jour les chips en base pour le joueur actuel (sauf si c'est une IA)
-    if (!currentPlayer.isAI) {
-      const user = this.databaseService.findUserById(currentPlayer.userId);
-      if (user) {
-        user.chips = table.players[table.currentPlayerIndex].chips;
-      }
-    }
-
-    // Passer au joueur suivant
-const nextPlayerIndex = this.getNextPlayer(table);
-
-// Vérifier si le round est terminé
-const roundOver = this.isRoundOver(table);
-
-if (roundOver) {
-  // Terminer le round et renvoyer l'état final
-  await this.endRound(tableId);
-  
-  return {
-    message: 'Round terminé',
-    table: table, // ← Ajoute la table complète
-  };
-}
-
-// Mettre à jour le joueur actif
-table.currentPlayerIndex = nextPlayerIndex;
-
-return {
-  message: 'Action jouée avec succès',
-  table: table, // ← Ajoute la table complète
-};
-  }
-
-  /**
-   * Récupère l'état actuel de la partie
-   */
   async getGameState(tableId: string) {
     const table = await this.tablesService.getTableById(tableId);
-
-    if (!table) {
-      throw new NotFoundException('Table non trouvée');
-    }
-
-    return {
-      id: table.id,
-      name: table.name,
-      status: table.status,
-      maxPlayers: table.maxPlayers,
-      smallBlind: table.smallBlind,
-      bigBlind: table.bigBlind,
-      pot: table.pot,
-      currentBet: table.currentBet,
-      currentPlayer: table.currentPlayerIndex,
-      communityCards: table.communityCards || [],
-      players: table.players.map((p) => ({
-        userId: p.userId,
-        username: p.username,
-        chips: p.chips,
-        currentBet: p.currentBet,
-        hasFolded: p.hasFolded,
-        cards: p.cards,
-      })),
-    };
+    if (!table) throw new NotFoundException('Table non trouvée');
+    return table;
   }
 
-  // ============================================
-  // MÉTHODES PRIVÉES (HELPERS)
-  // ============================================
-
   /**
-   * Trouve le prochain joueur actif (qui n'a pas fold)
+   * Joue une action et gère le tour du bot automatiquement
    */
-  private getNextPlayer(table: Table): number {
-    const players = table.players;
-    let nextPlayerIndex = (table.currentPlayerIndex + 1) % players.length;
-    let attempts = 0;
+  async playAction(tableId: string, userId: string, playActionDto: PlayActionDto) {
+    const table = await this.tablesService.getTableById(tableId);
+    if (!table || table.status !== 'playing') throw new BadRequestException("Action impossible");
 
-    // Boucle pour trouver le prochain joueur actif
-    while (attempts < players.length) {
-      const player = players[nextPlayerIndex];
+    const currentPlayer = table.players[table.currentPlayerIndex];
+    if (currentPlayer.userId !== userId) throw new BadRequestException("Pas votre tour");
+
+    // Traitement action humaine
+    this.processLogic(table, currentPlayer, playActionDto);
+    this.syncUserChips(currentPlayer);
+
+    // Si après ton action le round n'est pas fini, on passe au bot
+    if (!this.isRoundOver(table)) {
+      table.currentPlayerIndex = this.getNextPlayer(table);
       
-      // Si le joueur n'a pas fold, c'est lui le prochain
-      if (!player.hasFolded) {
-        return nextPlayerIndex;
+      const nextPlayer = table.players[table.currentPlayerIndex];
+      if (nextPlayer && nextPlayer.isAI) {
+        // On lance le tour du bot de manière asynchrone pour ne pas bloquer la réponse HTTP
+        // Mais ici, pour simplifier la cohérence du retour, on peut l'attendre 
+        await this.handleBotTurn(table);
+      }
+    } else {
+      await this.endRound(table.id);
+    }
+
+    return { message: 'Action validée', table };
+  }
+
+  private processLogic(table: Table, player: Player, dto: PlayActionDto) {
+  switch (dto.action) {
+    case ActionType.FOLD:
+      player.hasFolded = true;
+      break;
+
+    case ActionType.CALL:
+      const diff = table.currentBet - player.currentBet;
+      // On s'assure de ne pas avoir de jetons négatifs
+      const actualDiff = Math.min(player.chips, diff); 
+      player.chips -= actualDiff;
+      player.currentBet += actualDiff;
+      table.pot += actualDiff;
+      break;
+
+    case ActionType.RAISE:
+      // On vérifie que amount existe. Sinon, on lance une erreur.
+      if (dto.amount === undefined || dto.amount === null) {
+        throw new BadRequestException("Le montant est requis pour une relance (Raise)");
       }
 
-      nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
-      attempts++;
-    }
+      const raiseAmount = dto.amount; // Ici, TypeScript sait que c'est un number
+      const raiseDiff = raiseAmount - player.currentBet;
 
-    // Si on arrive ici, il n'y a plus de joueur actif (ne devrait pas arriver)
-    return -1;
+      if (player.chips < raiseDiff) {
+        throw new BadRequestException("Vous n'avez pas assez de jetons");
+      }
+
+      player.chips -= raiseDiff;
+      player.currentBet = raiseAmount;
+      table.pot += raiseDiff;
+      table.currentBet = raiseAmount;
+      break;
   }
-
-  /**
-   * Vérifie si le tour de mises est terminé
-   */
-  private isRoundOver(table: Table): boolean {
-    const players = table.players;
-    
-    // Compte les joueurs actifs (qui n'ont pas fold)
-    const activePlayers = players.filter((p) => !p.hasFolded);
-
-    // Si un seul joueur actif, le round est terminé
-    if (activePlayers.length <= 1) {
-      return true;
-    }
-
-    // Vérifie si tous les joueurs actifs ont misé le même montant
-    const currentBet = table.currentBet || 0;
-    const allPlayersBetEqual = activePlayers.every(
-      (p) => p.currentBet === currentBet,
-    );
-
-    return allPlayersBetEqual;
-  }
-
-  /**
-   * Termine le round : détermine le gagnant et distribue le pot
-   */
-  private async endRound(tableId: string): Promise<any> {
-  const table = await this.tablesService.getTableById(tableId);
-
-  if (!table) {
-    throw new NotFoundException('Table non trouvée');
-  }
-
-  // Trouve le(s) gagnant(s) (version simple : dernier joueur actif)
-  const activePlayers = table.players.filter((p) => !p.hasFolded);
-
-  if (activePlayers.length === 0) {
-    throw new BadRequestException('Aucun joueur actif');
-  }
-
-  // Pour l'instant : le gagnant est le dernier joueur actif (ou celui avec le plus de chips)
-  const winner = activePlayers.reduce((prev, current) => 
-    (current.chips > prev.chips) ? current : prev
-  );
-
-  // Sauvegarder le pot AVANT de le réinitialiser
-  const winAmount = table.pot;
-  
-  // Créditer le pot au gagnant
-  winner.chips += winAmount;
-
-  // Met à jour les chips en base (seulement si ce n'est pas une IA)
-  if (!winner.isAI) {
-    const user = this.databaseService.findUserById(winner.userId);
-    if (user) {
-      user.chips = winner.chips;
-    }
-  }
-
-  // Supprimer le deck utilisé pour cette partie
-  const deckId = (table as any).deckId;
-  if (deckId) {
-    try {
-      this.cardsService.deleteDeck(deckId);
-    } catch (error) {
-      // Ignorer si le deck n'existe pas
-    }
-  }
-
-  // Réinitialise la table
-  table.status = 'waiting';
-  table.pot = 0;
-  table.currentBet = 0;
-  table.currentPlayerIndex = 0;
-  table.communityCards = [];
-  
-  // Réinitialiser les données de jeu des joueurs (mais garder les chips)
-  table.players.forEach((p) => {
-    p.cards = [];
-    p.currentBet = 0;
-    p.hasFolded = false;
-  });
-  
-  delete (table as any).deckId;
-
-  return {
-    winner: {
-      userId: winner.userId,
-      username: winner.username,
-      winAmount: winAmount,
-    },
-    finalPot: winAmount,
-    table: table, // ← Renvoyer la table complète pour l'interface
-  };
 }
+
+  private async handleBotTurn(table: Table) {
+    // 1. Simulation de réflexion (2 secondes)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const bot = table.players[table.currentPlayerIndex];
+    
+    // 2. Le bot se couche
+    bot.hasFolded = true;
+    this.syncUserChips(bot);
+
+    // 3. Vérification de fin de round après le fold
+    if (this.isRoundOver(table)) {
+      await this.endRound(table.id);
+    } else {
+      table.currentPlayerIndex = this.getNextPlayer(table);
+    }
+  }
+
+  private syncUserChips(player: Player) {
+    if (!player.isAI) {
+      const user = this.databaseService.findUserById(player.userId);
+      if (user) user.chips = player.chips;
+    }
+  }
+
+  private getNextPlayer(table: Table): number {
+    let next = (table.currentPlayerIndex + 1) % table.players.length;
+    while (table.players[next].hasFolded) {
+      next = (next + 1) % table.players.length;
+    }
+    return next;
+  }
+
+  private isRoundOver(table: Table): boolean {
+    const active = table.players.filter(p => !p.hasFolded);
+    if (active.length <= 1) return true;
+    return active.every(p => p.currentBet === table.currentBet);
+  }
+
+  private async endRound(tableId: string) {
+    const table = await this.tablesService.getTableById(tableId);
+    table.status = 'finished';
+
+    const winners = table.players.filter(p => !p.hasFolded);
+    const winner = winners[0] || table.players[0];
+
+    winner.chips += table.pot;
+    this.syncUserChips(winner);
+    (table as any).lastWinner = winner.username;
+
+    const deckId = (table as any).deckId;
+    if (deckId) this.cardsService.deleteDeck(deckId);
+  }
 }
